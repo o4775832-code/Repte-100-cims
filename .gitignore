@@ -1,0 +1,4 @@
+node_modules/
+scripts/clave-servicio.json
+copias/
+*.log
