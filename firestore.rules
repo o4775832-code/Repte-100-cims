@@ -1,0 +1,194 @@
+rules_version = '2';
+
+// =====================================================================
+//  Reglas de Firestore de Reto 100 Cims
+//
+//  Requisitos (ver README, apartado "Puesta en marcha de la seguridad"):
+//   1. Authentication activado con el proveedor "Correo electrónico/contraseña".
+//   2. Cuenta del administrador creada en Authentication y su UID anotado en
+//      la colección  admins/{UID}  (se crea A MANO desde la consola; las reglas
+//      impiden crearla desde la web, así que el permiso de admin lo da el servidor).
+//
+//  Cómo se identifica a cada usuario: la app inicia sesión con un correo
+//  sintético  <clave>@users.100cims.invalid  donde <clave> es el mismo
+//  identificador que se usa como id del documento  users/<clave>
+//  (nombre en minúsculas, codificado por sid() en js/almacenamiento.js; los códigos
+//  %xx de los caracteres no ASCII salen en mayúsculas en el id, pero Firebase pasa el
+//  correo a minúsculas, por eso se compara con .lower()).
+//  Por eso las reglas comparan el id del documento con la parte local del
+//  correo del token, sin lecturas extra.
+// =====================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funciones auxiliares ----------
+
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.matches('.*@users\\.100cims\\.invalid');
+    }
+
+    // Clave del usuario conectado (= id de su documento en users/).
+    function myKey() {
+      return request.auth.token.email.split('@')[0];
+    }
+
+    // Misma clave escapada para usarla dentro de una expresión regular
+    // (en la clave solo puede haber "." como carácter especial).
+    function myKeyRe() {
+      return myKey().replace('.', '\\.');
+    }
+
+    // El administrador lo marca el servidor: existe un documento admins/<su uid>
+    // creado desde la consola de Firebase. Ningún cliente puede crearlo.
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ¿El id de un registro/foto es de la forma "<mi clave>__<número de cima>"?
+    function ownsRec(recId) {
+      return signedIn() && recId.lower().matches(myKeyRe() + '__[0-9]+');
+    }
+
+    // Número razonable de cimas (solo para acotar el contador informativo).
+    function sane(n) {
+      return n is int && n >= 0 && n <= 1000;
+    }
+
+    // ---------- Administradores (solo lectura del propio permiso) ----------
+
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // ---------- Usuarios ----------
+
+    match /users/{id} {
+      // TRANSICIÓN: sin sesión solo se puede leer UN documento (nunca listar) y únicamente
+      // si todavía conserva el campo "hash" (cuenta antigua pendiente de migrar a
+      // Authentication) o si no existe (para saber si un nombre está libre).
+      // Cuando todos tus amigos hayan entrado una vez ya no queda ningún documento con
+      // "hash" y esta condición no deja pasar nada que no estuviera ya cerrado.
+      allow get: if signedIn() || resource == null || 'hash' in resource.data;
+      allow list: if signedIn();
+
+      // Crear mi propio documento (el administrador no se puede crear desde la web).
+      allow create: if signedIn()
+        && id.lower() == myKey()
+        && id != 'admin_07'
+        && request.resource.data.username is string
+        && request.resource.data.username.size() >= 3
+        && request.resource.data.username.size() <= 20
+        && !('hash' in request.resource.data)
+        && sane(request.resource.data.get('count', 0));
+
+      // Modificar solo lo mío, y solo campos de perfil.
+      // El hash antiguo solo se puede BORRAR (migración), nunca escribir.
+      // "reclaim" (permiso para recuperar la cuenta) solo lo pone el admin.
+      allow update: if isAdmin() || (
+        signedIn()
+        && id.lower() == myKey()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['companions', 'declined', 'avatar', 'wish', 'count', 'last', 'hash', 'reclaim'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['hash'])
+             || !('hash' in request.resource.data))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['reclaim'])
+             || !('reclaim' in request.resource.data))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['count'])
+             || sane(request.resource.data.count))
+      );
+
+      allow delete: if isAdmin() || (signedIn() && id.lower() == myKey());
+    }
+
+    // ---------- Cimas registradas (una por usuario y cima: "<clave>__<id cima>") ----------
+
+    match /records/{recId} {
+      allow read: if signedIn();
+
+      allow create: if ownsRec(recId)
+        && request.resource.data.keys().hasOnly(
+             ['user', 'username', 'owner', 'peakId', 'date', 'notes', 'comp', 'photo', 'photos', 'dates'])
+        && request.resource.data.user is string
+        && request.resource.data.peakId is int
+        && request.resource.data.get('photos', []).size() <= 4
+        && request.resource.data.get('notes', '').size() <= 2000;
+
+      // Nadie puede cambiar a quién pertenece un registro.
+      allow update: if (ownsRec(recId) || isAdmin())
+        && request.resource.data.user == resource.data.user
+        && request.resource.data.get('photos', []).size() <= 4;
+
+      allow delete: if ownsRec(recId) || isAdmin();
+    }
+
+    // ---------- Fotos de cada cima (separadas para no descargarlas al leer registros) ----------
+
+    match /recphotos/{recId} {
+      allow read: if signedIn();
+
+      allow create, update: if ownsRec(recId)
+        && request.resource.data.keys().hasOnly(['owner', 'photos'])
+        && request.resource.data.photos is list
+        && request.resource.data.photos.size() <= 4;
+
+      // Admin: solo puede vaciar las fotos (moderación), no subirlas.
+      allow update: if isAdmin() && request.resource.data.photos.size() == 0;
+
+      allow delete: if ownsRec(recId) || isAdmin();
+    }
+
+    // ---------- Solicitudes de amistad (id: "<clave emisor>__<clave receptor>") ----------
+
+    match /friendreqs/{reqId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && reqId.lower().matches(myKeyRe() + '__.+')
+        && request.resource.data.accepted == false;
+
+      // Solo quien RECIBE la solicitud puede aceptarla, y solo cambia "accepted".
+      allow update: if signedIn()
+        && reqId.lower().matches('.+__' + myKeyRe())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accepted'])
+        && request.resource.data.accepted == true;
+
+      // Cualquiera de los dos extremos (o el admin) puede borrarla.
+      allow delete: if isAdmin()
+        || (signedIn() && (reqId.lower().matches(myKeyRe() + '__.+') || reqId.lower().matches('.+__' + myKeyRe())));
+    }
+
+    // ---------- Solicitudes de cimas nuevas ----------
+
+    match /peakreqs/{id} {
+      allow read: if signedIn();
+
+      // Se crean siempre como "pending": nadie puede aprobarse su propia solicitud.
+      allow create: if signedIn()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.get('ownerS', '').lower() == myKey();
+
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.get('ownerS', '').lower() == myKey());
+    }
+
+    // ---------- Catálogo (lectura pública, escritura solo admin) ----------
+
+    match /peaks/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /peaksov/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Cualquier otra colección: cerrada.
+  }
+}
