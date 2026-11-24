@@ -3,6 +3,8 @@
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-fi]");
 
+  if (e.target.closest("button:not([data-fi]), a, input, select, textarea")) return;
+
   if (b && S.session) openPeak(+b.dataset.fi);
 });
 

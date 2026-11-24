@@ -3,7 +3,7 @@
    - Librerías de Firebase y fuentes: "caché mientras se actualiza".
    - Firestore / Authentication (datos y sesión) NUNCA pasan por aquí: Firebase gestiona su propia caché.
    Sube VERSION cuando cambies archivos para limpiar cachés antiguas. */
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE = "cims-" + VERSION;
 
 const SHELL = [
