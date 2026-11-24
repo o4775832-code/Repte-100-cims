@@ -104,7 +104,7 @@ function openMyCims(companionsOnly = false) {
 
   el.id = "modal";
   el.className = "fixed inset-0 z-50 bg-black/50 flex items-end justify-center";
-  el.innerHTML = `<div class="sheet bg-white w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[90vh] overflow-y-auto"><div class="flex items-center justify-between"><div><h3 class="font-bold text-lg">${companionsOnly ? "🤝 Cimas con amigos" : "🥾 Mis cimas realizadas"}</h3><p class="text-xs text-slate-500">${rows.length} ascensión${rows.length === 1 ? "" : "es"} registrada${rows.length === 1 ? "" : "s"}</p></div><button id="mcx" class="text-2xl">×</button></div><input id="mcq" class="w-full border rounded-xl px-3 py-2 text-sm" placeholder="Buscar cima o comarca…"><div id="mcl" class="space-y-2"></div></div>`;
+  el.innerHTML = `<div class="sheet bg-white w-full max-w-md rounded-t-3xl p-4 space-y-3 max-h-[90vh] overflow-y-auto"><div class="mc-sticky"><div class="mc-head"><div><h3 class="mc-title">${companionsOnly ? "🤝 Cimas con amigos" : "🥾 Mis cimas realizadas"}</h3><p class="mc-sub">${rows.length} ascensión${rows.length === 1 ? "" : "es"} registrada${rows.length === 1 ? "" : "s"}</p></div><button id="mcx" type="button" class="mc-close" aria-label="Cerrar">×</button></div><label class="mc-search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="mcq" placeholder="Buscar cima o comarca…" autocomplete="off"></label></div><div id="mcl" class="mc-list"></div></div>`;
 
   document.body.appendChild(el);
 
@@ -124,13 +124,19 @@ function openMyCims(companionsOnly = false) {
 
     const card = p => {
       const d = S.done[p.id];
+      const when = /^\d{4}-\d{2}-\d{2}$/.test(d.date || "") ? fmtD(d.date) : "Sin fecha";
+      const comp = d.comp && d.comp.length ? d.comp : null;
 
-      return `<button type="button" data-mcpeak="${p.id}" class="w-full text-left bg-slate-100 rounded-xl p-3 flex gap-3 items-center">${isImg(d.photo) ? `<img src="${d.photo}" class="w-14 h-14 rounded-lg object-cover" alt="">` : `<span class="w-14 h-14 rounded-lg bg-white flex items-center justify-center text-2xl">⛰️</span>`}<span class="min-w-0 flex-1"><b class="block text-sm truncate">${esc(p.name)}</b><span class="block text-xs text-slate-500">${p.alt ? p.alt + " m · " : ""}${esc(p.area)}</span><span class="block text-xs text-emerald-700">✅ ${esc(d.date || "Sin fecha")}${d.comp && d.comp.length ? " · 🤝 " + esc(d.comp.join(", ")) : " · En solitario"}</span>${d.notes ? `<span class="block text-xs text-slate-500 truncate">${esc(d.notes)}</span>` : ""}</span><span>›</span></button>`;
+      const photo = isImg(d.photo)
+        ? `<img src="${d.photo}" class="mc-ph" alt="">`
+        : `<span class="mc-ph mc-ph-empty" aria-hidden="true">⛰️</span>`;
+
+      return `<button type="button" data-mcpeak="${p.id}" class="mc-card">${photo}<span class="mc-body"><span class="mc-top"><b class="mc-name">${esc(p.name)}</b>${p.alt ? `<span class="mc-alt">${p.alt} m</span>` : ""}</span><span class="mc-area">${esc(p.area)}</span><span class="mc-meta"><span class="mc-date">📅 ${esc(when)}</span><span class="mc-who${comp ? "" : " mc-solo"}">${comp ? "🤝 " + esc(comp.join(", ")) : "En solitario"}</span></span>${d.notes ? `<span class="mc-notes">${esc(d.notes)}</span>` : ""}</span><svg class="mc-go" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`;
     };
 
     const group = (title, emoji, items, essential) =>
       items.length
-        ? `<section class="space-y-2"><div class="flex items-center justify-between px-1 pt-2"><h4 class="text-sm font-extrabold">${emoji} ${title}</h4><span class="text-[11px] font-semibold rounded-full px-2 py-1 ${essential ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}">${items.length} ${items.length === 1 ? "cima" : "cimas"}</span></div>${items.map(card).join("")}</section>`
+        ? `<section class="mc-group"><div class="mc-gh"><h4 class="mc-gt">${emoji} ${title}</h4><span class="mc-count${essential ? " mc-count-e" : ""}">${items.length} ${items.length === 1 ? "cima" : "cimas"}</span></div>${items.map(card).join("")}</section>`
         : "";
 
     $("#mcl").innerHTML =

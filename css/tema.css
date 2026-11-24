@@ -308,3 +308,249 @@ nav button svg {
     bottom: 32px;
   }
 }
+
+/* ===== Lista «Mis cimas realizadas» / «Cimas con amigos» ===== */
+.mc-sticky {
+  position: sticky;
+  top: -16px;
+  z-index: 3;
+  margin: 0 -16px;
+  padding: 4px 16px 12px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mc-title {
+  font:
+    800 1.25rem/1.2 Sora,
+    "Plus Jakarta Sans",
+    system-ui,
+    sans-serif;
+  color: var(--text);
+}
+
+.mc-sub {
+  margin-top: 3px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.mc-close {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--card2);
+  color: var(--text2);
+  font-size: 1.4rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mc-search {
+  position: relative;
+  display: block;
+  color: var(--faint);
+}
+
+.mc-search svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.mc-search input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--input);
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+}
+
+.mc-search input:focus {
+  outline: 2px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.mc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mc-gh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.mc-gt {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text2);
+}
+
+.mc-count {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--card2);
+  color: var(--muted);
+}
+
+.mc-count-e {
+  background: var(--chip);
+  color: var(--chipt);
+}
+
+.mc-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 10px;
+  text-align: left;
+  color: var(--text);
+  background: var(--card3);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  transition:
+    transform 0.12s,
+    border-color 0.12s;
+}
+
+.mc-card:active {
+  transform: scale(0.985);
+}
+
+.mc-card:hover {
+  border-color: var(--line2);
+}
+
+.mc-card:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.mc-ph {
+  flex: none;
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.6);
+}
+
+.mc-ph-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  background: linear-gradient(145deg, var(--card2), var(--track));
+  box-shadow: none;
+}
+
+.mc-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mc-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mc-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mc-alt {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--alt);
+  background: color-mix(in srgb, var(--alt) 16%, transparent);
+}
+
+.mc-area {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.mc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.mc-date {
+  color: var(--brand2);
+}
+
+.mc-who {
+  color: var(--text2);
+}
+
+.mc-solo {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.mc-notes {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.mc-go {
+  flex: none;
+  color: var(--faint);
+}
